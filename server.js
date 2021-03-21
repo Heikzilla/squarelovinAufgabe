@@ -1,30 +1,53 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-var app = express();
-var http = require('http');
-var api = require('./api');
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+const http = require('http');
+const api = require('./api');
+const data = require('./data');
 
-var request = require('request');
-
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+const request = require('request');
 
 app.get('/index.html', function (req, res) {
    res.sendFile( __dirname + "/" + "index.html" );
 })
 
-app.get('/results_get', function (req, res) {
+app.get('/results_get', function (req, resp) {
     // Prepare output in JSON format
-    response = {
-        search:req.query.name
+    let query = {
+        search: req.query.name
     };
-    console.log(response);
+    console.log(query);
 
-    var resultTable = api.apiresponse(JSON.stringify(response));
+    let res = api.apiPublisher(JSON.stringify(query));
+    res.then(function(values) {
+        let table = "<table border='1'>";
+        table +="<tr><td>id</td><td>name</td><td>createdAt</td></tr>";
+        for(var i = 0; i < values.length; i++){
+            table += values[i].toTableElem();
+        };
+        table += "</table>";
+        resp.send(table);     
+    },function(e) {
+        resp.send("ERROR: " + e);
+    });
+})
 
-    if(resultTable != ''){
-        res.send(resultTable);
-    }
+app.get('/publisher', function (req, resp) {
+    // Prepare output in JSON format
+    let query = req.query.id;
+    console.log(query);
 
+    let res = api.getPublisherById(query);
+    res.then(function(value) {
+        console.log(value);
+        let table = "<table border='1'>";
+        table +="<tr><td>id</td><td>name</td><td>createdAt</td></tr>";
+        table += value.toTableElem();
+        table += "</table>";
+        resp.send(table);     
+    }, function(e) {
+        resp.send("ERROR: " + e);
+    });
 })
 
 //Run Server
